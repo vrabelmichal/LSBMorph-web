@@ -1,0 +1,17 @@
+{% extends "base.html" %}
+
+{% block title %}LSBMorph - Aladin Viewer{% endblock %}
+
+{% block head_scripts %}
+<meta http-equiv="refresh" content="0; url={{ aladin_url }}">
+{% endblock %}
+
+{% block content %}
+<div class="text-center my-5">
+    <h2>Redirecting to Aladin Lite...</h2>
+    <p>If you are not redirected automatically, <a href="{{ aladin_url }}">click here</a>.</p>
+    <div class="spinner-border mt-3" role="status">
+        <span class="visually-hidden">Loading...</span>
+    </div>
+</div>
+{% endblock %}

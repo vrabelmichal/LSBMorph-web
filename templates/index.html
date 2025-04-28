@@ -1,0 +1,43 @@
+{% extends "base.html" %}
+
+{% block title %}LSBMorph - Login{% endblock %}
+
+{% block content %}
+<div class="row justify-content-center mt-5">
+    <div class="col-md-6">
+        <div class="card">
+            <div class="card-header bg-primary text-white">
+                <h4 class="mb-0">Welcome to LSBMorph Web</h4>
+            </div>
+            <div class="card-body">
+                <p class="card-text">
+                    LSBMorph Web is a tool for classifying low surface brightness galaxies.
+                    Please enter your name to begin.
+                </p>
+                
+                <form method="POST" action="{{ url_for('login') }}">
+                    <div class="mb-3">
+                        <label for="username" class="form-label">Your Name:</label>
+                        <input type="text" class="form-control" id="username" name="username" required>
+                    </div>
+                    
+                    <button type="submit" class="btn btn-primary">Start Classification</button>
+                </form>
+            </div>
+        </div>
+        
+        <div class="card mt-4">
+            <div class="card-header bg-info text-white">
+                <h5 class="mb-0">About This Tool</h5>
+            </div>
+            <div class="card-body">
+                <p>
+                    This web application allows astronomers to classify low surface brightness (LSB) galaxies 
+                    based on various image data. The classification helps in understanding galaxy formation and evolution.
+                </p>
+                <a href="{{ url_for('help') }}" class="btn btn-outline-info">Learn More</a>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}

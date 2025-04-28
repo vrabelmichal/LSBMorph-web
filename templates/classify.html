@@ -1,0 +1,184 @@
+{% extends "base.html" %}
+
+{% block content %}
+<div class="container-fluid" id="main-content-container">
+    <div class="row mb-3" id="galaxy-classification-header-container">
+        <div class="col-12">
+            <h3 id="galaxy-classification-section-header">
+                <span class="other">LSB Galaxy Classification - </span>
+                <span class="galaxy-id">{{ galaxy.id }}</span>
+            </h3>
+        </div>
+    </div>
+    
+    <form method="POST" action="{{ url_for('submit_classification') }}" id="classification-form">
+        <input type="hidden" name="galaxy_id" value="{{ galaxy.id }}">
+
+        <div class="row" id="classification-form-row">
+            <!-- Classification Form (order-first on mobile) -->
+            <div class="col-md-3 order-md-2 order-first mb-3" id="classification-form-container">
+                
+                <!-- Quick Input Field -->
+                <div id="text-inputs-container">
+                    <div class="card mb-3" id="quick-input-card">
+                        <div class="card-header">Input by typing</div>
+                        <div class="card-body">
+                            <div class="form-group">
+                                <input type="text" class="form-control" id="quick-input" 
+                                    placeholder="Example: -1 or 1- or 0r (with a for awesome)"
+                                    autocomplete="off">
+                                <small class="form-text text-muted">
+                                    Format: [LSB: -/0/1] [Morph: -/0/1/2] (add "r" for redshift, "a" for awesome)
+                                </small>
+                            </div>
+                        </div>
+                    </div>
+                    
+                    <div class="form-group mb-3" id="comments-container">
+                        <label for="comments">Comments:</label>
+                        <textarea class="form-control" id="comments" name="comments" rows="2"></textarea>
+                    </div>
+                </div>
+
+                <div id="non-important-click-inputs-container">
+                    <div class="form-check mb-3" id="awesome-flag-container">
+                        <input class="form-check-input" type="checkbox" id="awesome_flag" name="awesome_flag">
+                        <label class="form-check-label" for="awesome_flag">
+                            <span class="text-success">Awesome</span>
+                        </label>
+                    </div>
+                    
+                    <div class="form-check mb-3" id="valid-redshift-container">
+                        <input class="form-check-input" type="checkbox" id="valid_redshift" name="valid_redshift">
+                        <label class="form-check-label" for="valid_redshift">
+                            <span class="text-danger">Valid redshift</span>
+                        </label>
+                    </div>
+                </div>
+
+                <div id="important-click-inputs-container">
+                    <div class="card mb-3" id="lsb-classification-card">
+                        <div class="card-header">Is it LSB?</div>
+                        <div class="card-body">
+                            <div class="form-check">
+                                <input class="form-check-input lsb-radio" type="radio" name="lsb_class" value="-1" id="lsb-failed">
+                                <label class="form-check-label" for="lsb-failed">Failed fitting [-1]</label>
+                            </div>
+                            <div class="form-check">
+                                <input class="form-check-input lsb-radio" type="radio" name="lsb_class" value="0" id="lsb-no">
+                                <label class="form-check-label" for="lsb-no">Non-LSB [0]</label>
+                            </div>
+                            <div class="form-check">
+                                <input class="form-check-input lsb-radio" type="radio" name="lsb_class" value="1" id="lsb-yes">
+                                <label class="form-check-label" for="lsb-yes">LSB [1]</label>
+                            </div>
+                        </div>
+                    </div>
+                    
+                    <div class="card mb-3" id="morphology-card">
+                        <div class="card-header">Morphology Type</div>
+                        <div class="card-body">
+                            <div class="form-check">
+                                <input class="form-check-input morph-radio" type="radio" name="morphology" value="-1" id="morph-featureless">
+                                <label class="form-check-label" for="morph-featureless">Featureless [-]</label>
+                            </div>
+                            <div class="form-check">
+                                <input class="form-check-input morph-radio" type="radio" name="morphology" value="0" id="morph-notsure">
+                                <label class="form-check-label" for="morph-notsure">Not sure (Irr/other) [0]</label>
+                            </div>
+                            <div class="form-check">
+                                <input class="form-check-input morph-radio" type="radio" name="morphology" value="1" id="morph-ltg">
+                                <label class="form-check-label" for="morph-ltg">LTG (Sp) [1]</label>
+                            </div>
+                            <div class="form-check">
+                                <input class="form-check-input morph-radio" type="radio" name="morphology" value="2" id="morph-etg">
+                                <label class="form-check-label" for="morph-etg">ETG (Ell) [2]</label>
+                            </div>
+                        </div>
+                    </div>
+                </div>                
+                
+                <div class="btn-group mb-4 w-100" id="submit-buttons-container">
+                    
+                    <button type="submit" class="btn btn-primary">Sumbit</button>
+
+                    {% if previous_galaxy %}
+                        <a href="{{ url_for('classify', id=previous_galaxy.id) }}" class="btn btn-secondary">Previous</a>
+                    {% else %}
+                        <button class="btn btn-secondary" disabled>Previous</button>
+                    {% endif %}
+
+                    {% if next_galaxy %}
+                        <a href="{{ url_for('classify', id=next_galaxy.id) }}" class="btn btn-secondary">Next</a>
+                    {% else %}
+                        <button class="btn btn-secondary" disabled>Next</button>
+                    {% endif %}
+
+                    {% if next_galaxy %}
+                        <a href="{{ url_for('skip_galaxy', id=galaxy.id) }}" class="btn btn-warning">Skip</a>
+                    {% else %}
+                        <button class="btn btn-warning" disabled>Skip</button>
+                    {% endif %}
+                </div>
+            </div>
+            
+            <!-- Galaxy Images (order-second on mobile) -->
+            <div class="col-md-9 order-md-1 order-last" id="galaxy-images-container">
+                <div class="row">
+                    {% for image in image_paths[:3] %}
+                    <div class="col-md-4 mb-3">
+                        <div class="card">
+                            <div class="card-header">
+                                {{ image.title }}
+                                <small class="vmax-info" data-target-image="{{ image.base_name }}">
+                                    {% if image.vmax is not none %}({{ image.vmax }}){% endif %}
+                                </small>
+                            </div>
+                            <img src="{{ url_for('static', filename=image.path) }}" class="img-fluid galaxy-image" data-base-name="{{ image.base_name }}">
+                        </div>
+                    </div>
+                    {% endfor %}
+                </div>
+                <div class="row">
+                    {% for image in image_paths[3:] %}
+                    <div class="col-md-4 mb-3">
+                        <div class="card">
+                            <div class="card-header">
+                                {{ image.title }}
+                                <small class="vmax-info" data-target-image="{{ image.base_name }}">
+                                    {% if image.vmax is not none %}({{ image.vmax }}){% endif %}
+                                </small>
+                            </div>
+                            <img src="{{ url_for('static', filename=image.path) }}" class="img-fluid galaxy-image" data-base-name="{{ image.base_name }}">
+                        </div>
+                    </div>
+                    {% endfor %}
+                </div>
+
+                <div class="row">
+                    <div class="btn-group mb-2 w-100">
+                        <a href="{{ url_for('aladin', ra=galaxy.ra, dec=galaxy.dec) }}" target="_blank" 
+                        class="btn btn-info">Aladin</a>
+                        <button type="button" class="btn btn-secondary" id="contrast-btn">Contrast</button>
+                        <!-- <a href="{{ url_for('help', category='examples') }}" class="btn btn-dark">Examples</a> -->
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <div class="row" id="classification-form-container-after-images"></div>
+
+    </form>
+
+    <div class="row">
+        <div class="progress">
+            <div class="progress-bar" role="progressbar" style="width: {{ progress.percentage }}%;" 
+                 aria-valuenow="{{ progress.percentage }}" aria-valuemin="0" aria-valuemax="100">
+                {{ progress.classified }}/{{ progress.total }} ({{ progress.percentage|int }}%)
+            </div>
+        </div>
+    </div>
+    
+</div>
+
+{% endblock %}

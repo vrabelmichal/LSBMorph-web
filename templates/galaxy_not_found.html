@@ -1,0 +1,33 @@
+{% extends "base.html" %}
+
+{% block title %}Galaxy Not Found{% endblock %}
+
+{% block content %}
+<div class="container">
+    <div class="row justify-content-center">
+        <div class="col-md-8">
+            <div class="card">
+                <div class="card-header bg-warning">
+                    <h3 class="mb-0">No Galaxy Available</h3>
+                </div>
+                <div class="card-body">
+                    <p class="lead">We couldn't find any galaxies for you to classify at the moment.</p>
+                    
+                    <p>This could be because:</p>
+                    <ul>
+                        <li>You've completed all available galaxies</li>
+                        <li>No galaxies have been loaded into the database yet</li>
+                        <li>The requested galaxy ID doesn't exist</li>
+                    </ul>
+                    
+                    <div class="d-grid gap-2">
+                        <a href="{{ url_for('classify') }}" class="btn btn-primary">Try Again</a>
+                        <a href="{{ url_for('results') }}" class="btn btn-secondary">View Your Results</a>
+                        <a href="{{ url_for('skipped_galaxies') }}" class="btn btn-info">View Skipped Galaxies</a>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}

@@ -1,0 +1,173 @@
+{% extends "base.html" %}
+
+{% block title %}LSBMorph - Results{% endblock %}
+
+{% block content %}
+<div class="row">
+    <div class="col-md-12 mb-4">
+        <div class="card">
+            <div class="card-header bg-success text-white">
+                <h4>Your Classification Statistics</h4>
+            </div>
+            <div class="card-body">
+                <div class="row">
+                    <div class="col-md-4">
+                        <div class="card text-center">
+                            <div class="card-body">
+                                <h1 class="display-1">{{ stats.total_classified }}</h1>
+                                <p class="card-text">Galaxies Classified</p>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="col-md-4">
+                        <div class="card text-center">
+                            <div class="card-body">
+                                <h1 class="display-1">{{ stats.lsb_count }}</h1>
+                                <p class="card-text">LSB Galaxies Found</p>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="col-md-4">
+                        <div class="card text-center">
+                            <div class="card-body">
+                                <h1 class="display-1">{{ stats.awesome_count }}</h1>
+                                <p class="card-text">Awesome Galaxies</p>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+    
+    <div class="col-md-6">
+        <div class="card">
+            <div class="card-header">
+                <h5>LSB Type Distribution</h5>
+            </div>
+            <div class="card-body">
+                <canvas id="lsbChart"></canvas>
+            </div>
+        </div>
+    </div>
+    
+    <div class="col-md-6">
+        <div class="card">
+            <div class="card-header">
+                <h5>Morphology Distribution</h5>
+            </div>
+            <div class="card-body">
+                <canvas id="morphChart"></canvas>
+            </div>
+        </div>
+    </div>
+    
+    <div class="col-md-12 mt-4">
+        <div class="card">
+            <div class="card-header">
+                <h5>Recent Classifications</h5>
+            </div>
+            <div class="card-body">
+                <div class="table-responsive">
+                    <table class="table table-striped">
+                        <thead>
+                            <tr>
+                                <th>Galaxy ID</th>
+                                <th>LSB Class</th>
+                                <th>Morphology</th>
+                                <th>Date Classified</th>
+                                <th>Actions</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            {% for classification in stats.recent_classifications %}
+                            <tr>
+                                <td>{{ classification.galaxy_id }}</td>
+                                <td>
+                                    {% if classification.lsb_class == -1 %}
+                                        Failed fitting
+                                    {% elif classification.lsb_class == 0 %}
+                                        Non-LSB
+                                    {% elif classification.lsb_class == 1 %}
+                                        LSB
+                                    {% endif %}
+                                </td>
+                                <td>
+                                    {% if classification.morphology == -1 %}
+                                        Featureless
+                                    {% elif classification.morphology == 0 %}
+                                        Not sure (Irr/other)
+                                    {% elif classification.morphology == 1 %}
+                                        LTG (Sp)
+                                    {% elif classification.morphology == 2 %}
+                                        ETG (Ell)
+                                    {% endif %}
+                                </td>
+                                <td>{{ classification.date_classified.strftime('%Y-%m-%d %H:%M') }}</td>
+                                <td>
+                                    <a href="{{ url_for('classify', id=classification.galaxy_id) }}" 
+                                       class="btn btn-sm btn-primary">View Again</a>
+                                </td>
+                            </tr>
+                            {% endfor %}
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block scripts %}
+<script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+<script>
+    document.addEventListener('DOMContentLoaded', function() {
+        // LSB Type Chart
+        const lsbCtx = document.getElementById('lsbChart').getContext('2d');
+        const lsbChart = new Chart(lsbCtx, {
+            type: 'pie',
+            data: {
+                labels: ['Failed fitting', 'Non-LSB', 'LSB'],
+                datasets: [{
+                    data: [
+                        {{ stats.lsb_counts.failed }}, 
+                        {{ stats.lsb_counts.non_lsb }}, 
+                        {{ stats.lsb_counts.lsb }}
+                    ],
+                    backgroundColor: [
+                        'rgba(255, 99, 132, 0.7)',
+                        'rgba(54, 162, 235, 0.7)',
+                        'rgba(75, 192, 192, 0.7)'
+                    ],
+                    borderWidth: 1
+                }]
+            }
+        });
+        
+        // Morphology Chart
+        const morphCtx = document.getElementById('morphChart').getContext('2d');
+        const morphChart = new Chart(morphCtx, {
+            type: 'pie',
+            data: {
+                labels: ['Featureless', 'Not sure (Irr/other)', 'LTG (Sp)', 'ETG (Ell)'],
+                datasets: [{
+                    data: [
+                        {{ stats.morph_counts.featureless }}, 
+                        {{ stats.morph_counts.not_sure }}, 
+                        {{ stats.morph_counts.ltg }},
+                        {{ stats.morph_counts.etg }}
+                    ],
+                    backgroundColor: [
+                        'rgba(255, 99, 132, 0.7)',
+                        'rgba(54, 162, 235, 0.7)',
+                        'rgba(75, 192, 192, 0.7)',
+                        'rgba(153, 102, 255, 0.7)'
+                    ],
+                    borderWidth: 1
+                }]
+            }
+        });
+    });
+</script>
+{% endblock %}

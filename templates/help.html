@@ -1,0 +1,145 @@
+{% extends "base.html" %}
+
+{% block title %}LSBMorph - Help{% endblock %}
+
+{% block content %}
+<div class="row">
+    <div class="col-md-3">
+        <div class="list-group">
+            <a href="{{ url_for('help', category='general') }}" 
+               class="list-group-item list-group-item-action {% if category == 'general' %}active{% endif %}">
+                General Help
+            </a>
+            <a href="{{ url_for('help', category='connection') }}" 
+               class="list-group-item list-group-item-action {% if category == 'connection' %}active{% endif %}">
+                Data Connection
+            </a>
+            <a href="{{ url_for('help', category='examples') }}" 
+               class="list-group-item list-group-item-action {% if category == 'examples' %}active{% endif %}">
+                Classification Examples
+            </a>
+        </div>
+    </div>
+    
+    <div class="col-md-9">
+        <div class="card">
+            <div class="card-header">
+                <h4>
+                {% if category == 'general' %}
+                    How to Use This Tool
+                {% elif category == 'connection' %}
+                    Data Connection Setup
+                {% elif category == 'examples' %}
+                    Classification Examples
+                {% endif %}
+                </h4>
+            </div>
+            <div class="card-body">
+                {% if category == 'general' %}
+                    <div id="helpCarousel" class="carousel slide" data-bs-ride="false">
+                        <div class="carousel-inner">
+                            {% for i in range(5) %}  <!-- Adjust based on actual number of help images -->
+                            <div class="carousel-item {% if i == 0 %}active{% endif %}">
+                                <img src="{{ url_for('static', filename='images/tips/' + i|string + '.png') }}" 
+                                     class="d-block w-100" alt="Help tip {{ i }}">
+                                <div class="carousel-caption bg-dark bg-opacity-75">
+                                    <p>Step {{ i+1 }}: Description of this step in the process</p>
+                                </div>
+                            </div>
+                            {% endfor %}
+                        </div>
+                        <button class="carousel-control-prev" type="button" data-bs-target="#helpCarousel" data-bs-slide="prev">
+                            <span class="carousel-control-prev-icon" aria-hidden="true"></span>
+                            <span class="visually-hidden">Previous</span>
+                        </button>
+                        <button class="carousel-control-next" type="button" data-bs-target="#helpCarousel" data-bs-slide="next">
+                            <span class="carousel-control-next-icon" aria-hidden="true"></span>
+                            <span class="visually-hidden">Next</span>
+                        </button>
+                    </div>
+                    
+                    <div class="mt-4">
+                        <h5>Classification Process</h5>
+                        <ul>
+                            <li>First, determine if the galaxy is a Low Surface Brightness (LSB) galaxy</li>
+                            <li>Then, classify its morphological type</li>
+                            <li>Add any relevant comments about unusual features</li>
+                            <li>Mark exceptional examples as "Awesome"</li>
+                            <li>Indicate if the redshift marking appears valid</li>
+                        </ul>
+                        
+                        <h5>Keyboard Shortcuts</h5>
+                        <table class="table table-bordered">
+                            <thead>
+                                <tr>
+                                    <th>Key</th>
+                                    <th>Function</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                <tr>
+                                    <td>c</td>
+                                    <td>Change contrast</td>
+                                </tr>
+                                <tr>
+                                    <td>r</td>
+                                    <td>Toggle redshift validity</td>
+                                </tr>
+                                <tr>
+                                    <td>a</td>
+                                    <td>Toggle "Awesome" flag</td>
+                                </tr>
+                                <tr>
+                                    <td>m</td>
+                                    <td>Toggle mask visibility</td>
+                                </tr>
+                            </tbody>
+                        </table>
+                    </div>
+                    
+                {% elif category == 'connection' %}
+                    <div id="connectionCarousel" class="carousel slide" data-bs-ride="false">
+                        <div class="carousel-inner">
+                            {% for i in range(3) %}  <!-- Adjust based on actual number of connection images -->
+                            <div class="carousel-item {% if i == 0 %}active{% endif %}">
+                                <img src="{{ url_for('static', filename='images/connection/' + i|string + '.png') }}" 
+                                     class="d-block w-100" alt="Connection step {{ i }}">
+                            </div>
+                            {% endfor %}
+                        </div>
+                        <button class="carousel-control-prev" type="button" data-bs-target="#connectionCarousel" data-bs-slide="prev">
+                            <span class="carousel-control-prev-icon" aria-hidden="true"></span>
+                            <span class="visually-hidden">Previous</span>
+                        </button>
+                        <button class="carousel-control-next" type="button" data-bs-target="#connectionCarousel" data-bs-slide="next">
+                            <span class="carousel-control-next-icon" aria-hidden="true"></span>
+                            <span class="visually-hidden">Next</span>
+                        </button>
+                    </div>
+                    
+                    <div class="mt-4">
+                        <h5>Connecting to Remote Data</h5>
+                        <p>The web application connects to pre-processed galaxy images. No VPN or special connection is required.</p>
+                    </div>
+                    
+                {% elif category == 'examples' %}
+                    <div class="row">
+                        {% for example in example_images %}
+                        <div class="col-md-6 mb-4">
+                            <div class="card">
+                                <img src="{{ url_for('static', filename='images/examples/' + example) }}" 
+                                     class="card-img-top" alt="Example image">
+                                <div class="card-body">
+                                    <h5 class="card-title">Example: {{ example }}</h5>
+                                    <p class="card-text">{{ example_descriptions.get(example, 'No description available') }}</p>
+                                </div>
+                            </div>
+                        </div>
+                        {% endfor %}
+                    </div>
+                {% endif %}
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
