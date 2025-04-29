@@ -214,8 +214,8 @@ document.addEventListener('DOMContentLoaded', function() {
     updateQuickInputFromForm();
     
     // Contrast button: cycle through server-generated PNGs and update vmax display
-    const vmaxPercentiles    = [99.0, 90.0, 99.5, 99.9, 80.0];
-    const vmaxRawPercentiles = [99.7, 99.0, 99.5, 99.9, 80.0];
+    const vmaxPercentiles    = [99.0, 99.5, 99.9, 99.95, 80.0, 90.0,];
+    const vmaxRawPercentiles = [99.7, 99.7, 99.9, 99.95, 90.0, 99.0,];
     let contrastIndex = 0;
     const galaxyId = document.querySelector('input[name="galaxy_id"]').value;
 
@@ -232,20 +232,33 @@ document.addEventListener('DOMContentLoaded', function() {
         // update vmax-info text
         const small = document.querySelector(`.vmax-info[data-target-image="${base}"]`);
         if (small) {
-        if (['masked_r_band','galfit_model','residual'].includes(base)) {
-            small.textContent = `(${v.toFixed(1)})`;
-        } else if (base === 'raw_r_band') {
-            small.textContent = `(${vr.toFixed(1)})`;
-        } else {
-            small.textContent = '';
-        }
+            // Decide on 1 or 2 decimal places: one place if decimal*10 is (nearly) an integer, else two places
+            const decimal = Math.abs(v % 1);
+            const isOneDecimal = Math.abs(decimal * 10 - Math.round(decimal * 10)) < 0.001;
+            const needed_decimal_places = isOneDecimal ? 1 : 2;
+
+            if (['masked_r_band','galfit_model','residual'].includes(base)) {
+                small.textContent = `(${v.toFixed(needed_decimal_places)})`;
+            } else if (base === 'raw_r_band') {
+                // for raw_r_band, check vr's decimals similarly
+                const decRaw = Math.abs(vr % 1);
+                const isOneDecRaw = Math.abs(decRaw * 10 - Math.round(decRaw * 10)) < 0.001;
+                const placesRaw = isOneDecRaw ? 1 : 2;
+                small.textContent = `(${vr.toFixed(placesRaw)})`;
+            } else {
+                small.textContent = '';
+            }
         }
     });
     });
 
     function slugify(value) {
-    // ensure one decimal place, replace '.'→'p', '-'→'m'
-    return Number(value).toFixed(1).replace(/-/g, 'm').replace(/\./g, 'p');
+        // ensure one decimal place, replace '.'→'p', '-'→'m'
+        // Format to 1 decimal place normally, 2 places if needed for precision
+        const formatted = Number(value).toFixed(
+            Math.abs(value % 1) < 0.05 ? 1 : 2
+        );
+        return formatted.replace(/-/g, 'm').replace(/\./g, 'p');
     }
 
     function getImageFilename(baseName, vmax, vmaxRaw) {
