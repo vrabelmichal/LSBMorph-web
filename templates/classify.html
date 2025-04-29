@@ -36,20 +36,20 @@
                     
                     <div class="form-group mb-3" id="comments-container">
                         <label for="comments">Comments:</label>
-                        <textarea class="form-control" id="comments" name="comments" rows="2"></textarea>
+                        <textarea class="form-control" id="comments" name="comments" rows="2">{% if current_classification %}{{ current_classification.comments }}{% endif %}</textarea>
                     </div>
                 </div>
 
                 <div id="non-important-click-inputs-container">
                     <div class="form-check mb-3" id="awesome-flag-container">
-                        <input class="form-check-input" type="checkbox" id="awesome_flag" name="awesome_flag">
+                        <input class="form-check-input" type="checkbox" id="awesome_flag" name="awesome_flag" {% if current_classification and current_classification.awesome_flag %}checked{% endif %}>
                         <label class="form-check-label" for="awesome_flag">
                             <span class="text-success">Awesome</span>
                         </label>
                     </div>
                     
                     <div class="form-check mb-3" id="valid-redshift-container">
-                        <input class="form-check-input" type="checkbox" id="valid_redshift" name="valid_redshift">
+                        <input class="form-check-input" type="checkbox" id="valid_redshift" name="valid_redshift" {% if current_classification and current_classification.valid_redshift %}checked{% endif %}>
                         <label class="form-check-label" for="valid_redshift">
                             <span class="text-danger">Valid redshift</span>
                         </label>
@@ -61,15 +61,15 @@
                         <div class="card-header">Is it LSB?</div>
                         <div class="card-body">
                             <div class="form-check">
-                                <input class="form-check-input lsb-radio" type="radio" name="lsb_class" value="-1" id="lsb-failed">
+                                <input class="form-check-input lsb-radio" type="radio" name="lsb_class" value="-1" id="lsb-failed" {% if current_classification and current_classification.lsb_class == -1 %}checked{% endif %}>
                                 <label class="form-check-label" for="lsb-failed">Failed fitting [-1]</label>
                             </div>
                             <div class="form-check">
-                                <input class="form-check-input lsb-radio" type="radio" name="lsb_class" value="0" id="lsb-no">
+                                <input class="form-check-input lsb-radio" type="radio" name="lsb_class" value="0" id="lsb-no" {% if current_classification and current_classification.lsb_class == 0 %}checked{% endif %}>
                                 <label class="form-check-label" for="lsb-no">Non-LSB [0]</label>
                             </div>
                             <div class="form-check">
-                                <input class="form-check-input lsb-radio" type="radio" name="lsb_class" value="1" id="lsb-yes">
+                                <input class="form-check-input lsb-radio" type="radio" name="lsb_class" value="1" id="lsb-yes" {% if current_classification and current_classification.lsb_class == 1 %}checked{% endif %}>
                                 <label class="form-check-label" for="lsb-yes">LSB [1]</label>
                             </div>
                         </div>
@@ -79,24 +79,24 @@
                         <div class="card-header">Morphology Type</div>
                         <div class="card-body">
                             <div class="form-check">
-                                <input class="form-check-input morph-radio" type="radio" name="morphology" value="-1" id="morph-featureless">
+                                <input class="form-check-input morph-radio" type="radio" name="morphology" value="-1" id="morph-featureless" {% if current_classification and current_classification.morphology == -1 %}checked{% endif %}>
                                 <label class="form-check-label" for="morph-featureless">Featureless [-]</label>
                             </div>
                             <div class="form-check">
-                                <input class="form-check-input morph-radio" type="radio" name="morphology" value="0" id="morph-notsure">
+                                <input class="form-check-input morph-radio" type="radio" name="morphology" value="0" id="morph-notsure" {% if current_classification and current_classification.morphology == 0 %}checked{% endif %}>
                                 <label class="form-check-label" for="morph-notsure">Not sure (Irr/other) [0]</label>
                             </div>
                             <div class="form-check">
-                                <input class="form-check-input morph-radio" type="radio" name="morphology" value="1" id="morph-ltg">
+                                <input class="form-check-input morph-radio" type="radio" name="morphology" value="1" id="morph-ltg" {% if current_classification and current_classification.morphology == 1 %}checked{% endif %}>
                                 <label class="form-check-label" for="morph-ltg">LTG (Sp) [1]</label>
                             </div>
                             <div class="form-check">
-                                <input class="form-check-input morph-radio" type="radio" name="morphology" value="2" id="morph-etg">
+                                <input class="form-check-input morph-radio" type="radio" name="morphology" value="2" id="morph-etg" {% if current_classification and current_classification.morphology == 2 %}checked{% endif %}>
                                 <label class="form-check-label" for="morph-etg">ETG (Ell) [2]</label>
                             </div>
                         </div>
                     </div>
-                </div>                
+                </div>
                 
                 <div class="btn-group mb-4 w-100" id="submit-buttons-container">
                     
@@ -174,7 +174,7 @@
         <div class="progress">
             <div class="progress-bar" role="progressbar" style="width: {{ progress.percentage }}%;" 
                  aria-valuenow="{{ progress.percentage }}" aria-valuemin="0" aria-valuemax="100">
-                {{ progress.classified }}/{{ progress.total }} ({{ progress.percentage|int }}%)
+                {{ progress.classified_count }}/{{ progress.total }} ({{ progress.percentage|int }}%)
             </div>
         </div>
     </div>

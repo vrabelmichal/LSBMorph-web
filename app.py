@@ -52,12 +52,12 @@ def login():
         .encode('ascii', 'ignore')
         .decode('ascii')
     )
-    clean_username = re.sub(r'\W+', '', clean_username)  # Remove non-alphanumeric
-    session['username'] = clean_username.strip().lower()
+    clean_username = re.sub(r'\W+', '', clean_username).strip().lower()  # Remove non-alphanumeric
+    session['username'] = clean_username
     
     with Session() as db_session:
         # Check if user exists, create if not
-        user = User.get_or_create(db_session, username)
+        user = User.get_or_create(db_session, clean_username)
         session['user_id'] = user.id
     
     return redirect(url_for('classify'))
@@ -96,10 +96,25 @@ def classify():
         
         if not galaxy:
             return render_template('galaxy_not_found.html')
-            
-        next_galaxy = Galaxy.get_next_for_user(db_session, session['user_id'], galaxy.id)
-        previous_galaxy = Galaxy.get_previous_for_user(db_session, session['user_id'], galaxy.id)
-        
+
+        current_classification = db_session.query(Classification).filter_by(
+            user_id=session['user_id'],
+            galaxy_id=galaxy.id
+        ).first()
+        next_galaxy = Galaxy.get_next_for_user(
+            session=db_session,
+            user_id=session['user_id'],
+            current_galaxy_id=galaxy.id,
+            ignore_skipped=True,
+            only_unclassified=False,
+        )
+        previous_galaxy = Galaxy.get_previous_for_user(
+            session=db_session,
+            user_id=session['user_id'],
+            current_galaxy_id=galaxy.id,
+            ignore_skipped=True,
+            only_unclassified=False,
+        )
         # Get image paths for this galaxy
         image_paths = get_galaxy_images(
             galaxy_id=galaxy.id,
@@ -122,7 +137,8 @@ def classify():
             next_galaxy=next_galaxy,
             previous_galaxy=previous_galaxy,
             image_paths=image_paths,
-            progress=progress
+            progress=progress,
+            current_classification=current_classification,
             )
 
 
@@ -171,12 +187,35 @@ def serve_galaxy_image(galaxy_id, image_file):
 def submit_classification():
     """Save classification data"""
     # Extract form data
-    galaxy_id = request.form['galaxy_id']
-    lsb_class = request.form['lsb_class']  # -1, 0, 1
-    morphology = request.form['morphology']  # -1, 0, 1, 2
-    comments = request.form['comments']
+    galaxy_id = request.form.get('galaxy_id')
+    raw_lsb = request.form.get('lsb_class')
+    raw_morph = request.form.get('morphology')
+    comments = request.form.get('comments', '')
     awesome_flag = 'awesome_flag' in request.form
     valid_redshift = 'valid_redshift' in request.form
+
+    errors = []
+    # Validate lsb_class
+    try:
+        lsb_class = int(raw_lsb)
+        if lsb_class not in (-1, 0, 1):
+            errors.append('lsb_class')
+    except (TypeError, ValueError):
+        errors.append('lsb_class')
+
+    # Validate morphology
+    try:
+        morphology = int(raw_morph)
+        if morphology not in (-1, 0, 1, 2):
+            errors.append('morphology')
+    except (TypeError, ValueError):
+        errors.append('morphology')
+
+    # If any validation failed, redirect back with error info in query string
+    if errors:
+        return redirect(
+            url_for('classify', id=galaxy_id, errors=','.join(errors))
+        )
     
     with Session() as db_session:
         # Save to database
@@ -255,7 +294,7 @@ def unskip_galaxy():
 @app.route('/help')
 def help():
     """Help page with examples and tips"""
-    category = request.args.get('category', 'general')
+    category = request.args.get('category', 'examples')
     
     # Get all image names from examples directory
     examples_dir = os.path.join(app.config['EXAMPLES_IMAGES_FOLDER'], )

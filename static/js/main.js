@@ -1,6 +1,7 @@
 document.addEventListener('DOMContentLoaded', function() {
     // Set focus on the quick input field when page loads
     const quickInput = document.getElementById('quick-input');
+    const classificationForm = document.getElementById('classification-form');
     
     // Only focus if not on a mobile device
     not_mobile = window.innerWidth > 576;
@@ -119,28 +120,46 @@ document.addEventListener('DOMContentLoaded', function() {
         document.getElementById('awesome_flag').checked = hasAwesome;
     }
     
-    // Handle form submission on Enter key
+    // Handle form submission on Enter key and validate form
     quickInput.addEventListener('keydown', function(e) {
         if (e.key === 'Enter') {
             e.preventDefault();
-            
-            // Validate form
-            const lsbSelected = document.querySelector('input[name="lsb_class"]:checked');
-            const morphSelected = document.querySelector('input[name="morphology"]:checked');
-            
-            if (!lsbSelected) {
-                alert('Please select an LSB classification.');
-                return;
-            }
-            
-            if (lsbSelected.value !== "-1" && !morphSelected) {
-                alert('Please select a morphology type.');
-                return;
-            }
-            
-            // Submit the form
+            validateAndSubmitForm();
+        }
+    });
+
+    // Form validation function
+    function validateAndSubmitForm() {
+        const lsbSelected = document.querySelector('input[name="lsb_class"]:checked');
+        const morphSelected = document.querySelector('input[name="morphology"]:checked');
+        const lsbCard = document.getElementById('lsb-classification-card');
+        const morphCard = document.getElementById('morphology-card');
+        
+        // Reset any previous highlights
+        lsbCard.classList.remove('border-danger', 'bg-danger-subtle');
+        morphCard.classList.remove('border-danger', 'bg-danger-subtle');
+        
+        let isValid = true;
+        
+        if (!lsbSelected) {
+            lsbCard.classList.add('border-danger', 'bg-danger-subtle');
+            isValid = false;
+        }
+        
+        if (lsbSelected && lsbSelected.value !== "-1" && !morphSelected) {
+            morphCard.classList.add('border-danger', 'bg-danger-subtle');
+            isValid = false;
+        }
+        
+        if (isValid) {
             document.getElementById('classification-form').submit();
         }
+    }
+
+    // Prevent default form submission and use our validation
+    classificationForm.addEventListener('submit', function(e) {
+        e.preventDefault();
+        validateAndSubmitForm();
     });
     
     // Update quick input field when radio buttons are clicked
@@ -191,24 +210,9 @@ document.addEventListener('DOMContentLoaded', function() {
         // Update the quick input field
         document.getElementById('quick-input').value = inputValue;
     }
-    
-    // // Contrast adjustment
-    // document.getElementById('contrast-btn').addEventListener('click', function() {
-    //     const images = document.querySelectorAll('.galaxy-image');
-    //     images.forEach(img => {
-    //         // Cycle through contrast levels by adding/removing classes
-    //         if (img.classList.contains('contrast-high')) {
-    //             img.classList.remove('contrast-high');
-    //             img.classList.add('contrast-extreme');
-    //         } else if (img.classList.contains('contrast-extreme')) {
-    //             img.classList.remove('contrast-extreme');
-    //             // Back to normal
-    //         } else {
-    //             img.classList.add('contrast-high');
-    //         }
-    //     });
-    // });
 
+    updateQuickInputFromForm();
+    
     // Contrast button: cycle through server-generated PNGs and update vmax display
     const vmaxPercentiles    = [99.0, 90.0, 99.5, 99.9, 80.0];
     const vmaxRawPercentiles = [99.7, 99.0, 99.5, 99.9, 80.0];
@@ -258,7 +262,6 @@ document.addEventListener('DOMContentLoaded', function() {
     const classificationFormRow = document.getElementById('classification-form-row');
     const formContainer = document.getElementById('classification-form-container');
     const formContainerAfterImages = document.getElementById('classification-form-container-after-images');
-    const classificationForm = document.getElementById('classification-form');
  
     // const imagesContainer = document.getElementById('galaxy-images-container');
 
@@ -267,182 +270,97 @@ document.addEventListener('DOMContentLoaded', function() {
     // const importantDiv  = document.getElementById('important-click-inputs-container');
     const galaxySectionHeaderContainer = document.getElementById('galaxy-classification-header-container');
 
-    function reorder() {
-        // Preserve focus/selection if user is typing
-        const hadFocus = document.activeElement === quickInput;
-        let start, end;
-        if (hadFocus) {
-            start = quickInput.selectionStart;
-            end   = quickInput.selectionEnd;
-        }
+    
+    let prevIsMobile = null;
 
-        if (window.innerWidth < 576) {
+    function reorder() {
+        const isMobile = window.innerWidth < 576;
+        // only proceed if breakpoint really changed
+        if (isMobile === prevIsMobile) return;
+        prevIsMobile = isMobile;
+
+        // preserve focus
+        const activeEl = document.activeElement;
+
+        if (isMobile) {
             formContainerAfterImages.appendChild(textDiv);
             formContainerAfterImages.appendChild(nonImpDiv);
             formContainerAfterImages.appendChild(galaxySectionHeaderContainer);
-
-            // // On phone: only the important-clicks stay in the form
-            // if (textDiv.parentNode !== imagesContainer)       imagesContainer.appendChild(textDiv);
-            // if (nonImpDiv.parentNode !== imagesContainer)     imagesContainer.appendChild(nonImpDiv);
         } else {
-            // // On desktop: move them back before the important-clicks
-            // if (textDiv.parentNode !== form)   form.insertBefore(textDiv, importantDiv);
-            // if (nonImpDiv.parentNode !== form) form.insertBefore(nonImpDiv, importantDiv);
-            
             formContainer.appendChild(textDiv);
             formContainer.appendChild(nonImpDiv);
             mainContentContainer.insertBefore(galaxySectionHeaderContainer, classificationForm);
-
         }
 
-        // Restore focus/selection
-        if (hadFocus) {
-            quickInput.focus();
-            quickInput.setSelectionRange(start, end);
+        // restore focus if needed
+        if (activeEl && typeof activeEl.focus === 'function') {
+            activeEl.focus();
         }
     }
 
     window.addEventListener('resize', reorder);
     reorder();
 
-    // const quickCard   = document.getElementById('quick-input')
-    //                         .closest('.card.mb-3');
-    // const commentCard = document.getElementById('comments')
-    //                         .closest('.form-group.mb-3');
 
 
-    // const quickCard   = document.getElementById('quick-input-card');
-    // const commentCard = document.getElementById('comments-container');
-    // const awsomeFlagContainer = document.getElementById('awesome-flag-container');
-    // const validRedshiftContainer = document.getElementById('valid-redshift-container');
-
-    // // Columns
-    // const formCol   = document.getElementById('classification-form-container');
-    // const imagesCol = document.getElementById('galaxy-images-container');
-
-    // function reorder() {
-    //     if (window.innerWidth < 576) {
-    //         // On phones: append under images
-    //         if (quickCard.parentNode !== imagesCol)   imagesCol.appendChild(quickCard);
-    //         if (commentCard.parentNode !== imagesCol) imagesCol.appendChild(commentCard);
-    //     } else {
-    //         // On larger: move back into form
-    //         if (quickCard.parentNode !== formCol && quickCard != formCol.firstChild)   formCol.insertBefore(quickCard, formCol.firstChild);
-    //         if (commentCard.parentNode !== formCol) {
-    //             // insert comment just before the flags section
-    //             const flagsSection = formCol.querySelector('#awesome_flag')
-    //                                         .closest('.form-check').parentNode;
-    //             formCol.insertBefore(commentCard, flagsSection);
-    //         }
-    //     }
-    // }
-
-    // window.addEventListener('resize', reorder);
-    // reorder();
-
+    // Function to handle responsive button layout
+    function handleButtonLayout() {
+        const buttonContainer = document.getElementById('submit-buttons-container');
+        const buttons = buttonContainer.querySelectorAll('.btn');
+        
+        if (window.innerWidth < 1280 && window.innerWidth >= 768) {
+            // Two rows layout for medium screens
+            buttonContainer.classList.remove('btn-group', 'w-100', 'mb-4');
+            buttonContainer.classList.add('compact-button-grid');
+            
+            // Wrap each pair of buttons in a div
+            for (let i = 0; i < buttons.length; i += 2) {
+                const btn1 = buttons[i];
+                const btn2 = buttons[i+1];
+                
+                if (!btn1.parentElement.classList.contains('col-6')) {
+                    const rowDiv = document.createElement('div');
+                    rowDiv.className = 'compact-row';
+                    
+                    const col1 = document.createElement('div');
+                    col1.className = 'col-6 px-1';
+                    const col2 = document.createElement('div');
+                    col2.className = 'col-6 px-1';
+                    
+                    buttonContainer.appendChild(rowDiv);
+                    rowDiv.appendChild(col1);
+                    rowDiv.appendChild(col2);
+                    
+                    col1.appendChild(btn1);
+                    if (btn2) col2.appendChild(btn2);
+                    
+                    btn1.classList.add('w-100');
+                    if (btn2) btn2.classList.add('w-100');
+                    btn1.classList.remove('btn-group-item');
+                    if (btn2) btn2.classList.remove('btn-group-item');
+                }
+            }
+        } else {
+            // One row layout for other screen sizes
+            buttonContainer.classList.add('btn-group', 'w-100', 'mb-4');
+            buttonContainer.classList.remove('compact-button-grid');
+            
+            buttons.forEach(btn => {
+                if (btn.parentElement.classList.contains('col-6')) {
+                    buttonContainer.appendChild(btn);
+                }
+                btn.classList.remove('w-100');
+            });
+            
+            // Remove any row divs created for the two-row layout
+            const rows = buttonContainer.querySelectorAll('.compact-row');
+            rows.forEach(row => row.remove());
+        }
+    }
+    
+    // Run initially and on window resize
+    window.addEventListener('load', handleButtonLayout);
+    window.addEventListener('resize', handleButtonLayout);
 
 
 });
-
-
-// document.addEventListener('DOMContentLoaded', function() {
-    
-//     // Keyboard shortcuts for classification
-//     document.addEventListener('keydown', function(event) {
-//         // Only process keyboard shortcuts if we're on the classification page
-//         if (!document.getElementById('classification-form')) return;
-        
-//         switch(event.key) {
-//             case 'c':
-//                 // Change contrast
-//                 document.getElementById('contrast-btn').click();
-//                 break;
-//             case 'r':
-//                 // Toggle redshift validity
-//                 const redshiftCheckbox = document.getElementById('valid_redshift');
-//                 if (redshiftCheckbox) {
-//                     redshiftCheckbox.checked = !redshiftCheckbox.checked;
-//                 }
-//                 break;
-//             case 'a':
-//                 // Toggle awesome flag
-//                 const awesomeCheckbox = document.getElementById('awesome_flag');
-//                 if (awesomeCheckbox) {
-//                     awesomeCheckbox.checked = !awesomeCheckbox.checked;
-//                 }
-//                 break;
-//             case '1':
-//                 // LSB classifications
-//                 if (event.ctrlKey) {
-//                     document.getElementById('lsb-failed').checked = true;
-//                 } else {
-//                     document.getElementById('lsb-yes').checked = true;
-//                 }
-//                 break;
-//             case '0':
-//                 // Non-LSB
-//                 document.getElementById('lsb-no').checked = true;
-//                 break;
-//             case 'f':
-//                 // Featureless morphology
-//                 document.getElementById('morph-featureless').checked = true;
-//                 break;
-//             case 's':
-//                 // LTG (Spiral)
-//                 document.getElementById('morph-ltg').checked = true;
-//                 break;
-//             case 'e':
-//                 // ETG (Elliptical)
-//                 document.getElementById('morph-etg').checked = true;
-//                 break;
-//             case 'n':
-//                 // Next galaxy (submit form)
-//                 if (validateForm()) {
-//                     document.getElementById('classification-form').submit();
-//                 }
-//                 break;
-//         }
-//     });
-    
-//     // Form validation
-//     function validateForm() {
-//         const form = document.getElementById('classification-form');
-//         if (!form) return true;
-        
-//         const lsbSelected = form.querySelector('input[name="lsb_class"]:checked');
-//         const morphSelected = form.querySelector('input[name="morphology"]:checked');
-        
-//         if (!lsbSelected) {
-//             alert('Please select an LSB classification.');
-//             return false;
-//         }
-        
-//         // If it's not "Failed fitting", require morphology
-//         if (lsbSelected.value !== "-1" && !morphSelected) {
-//             alert('Please select a morphology type.');
-//             return false;
-//         }
-        
-//         return true;
-//     }
-    
-//     // Add validation to form submission
-//     const form = document.getElementById('classification-form');
-//     if (form) {
-//         form.addEventListener('submit', function(event) {
-//             if (!validateForm()) {
-//                 event.preventDefault();
-//             }
-//         });
-//     }
-    
-//     // Initialize tooltips if any
-//     const tooltipTriggerList = [].slice.call(document.querySelectorAll('[data-bs-toggle="tooltip"]'));
-//     if (tooltipTriggerList.length > 0) {
-//         tooltipTriggerList.map(function(tooltipTriggerEl) {
-//             return new bootstrap.Tooltip(tooltipTriggerEl);
-//         });
-//     }
-// });
-
-
