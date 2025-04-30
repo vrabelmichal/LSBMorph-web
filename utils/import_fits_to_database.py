@@ -46,6 +46,7 @@ def import_from_fits(db_url, input_fits, overwrite=False, user_id=None):
             obj.lsb_class           = int(row['Class'])
             obj.morphology          = int(row['Morphology'])
             obj.comments            = row['Comments'] or None
+            obj.sky_bkg             = row['Sky_Bkg'] or None
 
             date_str = row['Date_of_classification']
             if date_str:

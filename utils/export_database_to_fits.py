@@ -8,8 +8,6 @@ from sqlalchemy.orm import sessionmaker
 # adjust this import to point at your actual model
 from models.galaxy import Classification  
 
-# constant for all rows
-SKY_BKG = "masked"
 
 def export_to_fits(db_url, output_fits, overwrite=False):
     """
@@ -29,6 +27,7 @@ def export_to_fits(db_url, output_fits, overwrite=False):
     dates = []
     awesome = []
     validz = []
+    sky_bkg = []
 
     for r in records:
         ids.append(str(r.id))
@@ -41,10 +40,11 @@ def export_to_fits(db_url, output_fits, overwrite=False):
         )
         awesome.append(int(r.awesome_flag))
         validz.append(int(r.valid_redshift))
+        sky_bkg.append(r.sky_bkg or "UNKNOWN")
 
     table = Table(
         [ids, classes, morphs, comments,
-         [SKY_BKG]*len(ids), dates, awesome, validz],
+         sky_bkg, dates, awesome, validz],
         names=["ID", "Class", "Morphology", "Comments",
                "Sky_Bkg", "Date_of_classification",
                "AwesomeFlag", "ValidRedshift"],
