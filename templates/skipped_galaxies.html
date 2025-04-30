@@ -10,7 +10,7 @@
                 <thead class="thead-dark">
                     <tr>
                         <th>Galaxy ID</th>
-                        <th>R-band Image</th>
+                        <th>APLpy</th>
                         <th>Skip Reason</th>
                         <th>Skip Date</th>
                         <th>Actions</th>
@@ -21,8 +21,8 @@
                         <tr>
                             <td>{{ skipped.galaxy.id }}</td>
                             <td>
-                                <img src="{{ url_for('serve_galaxy_image', galaxy_id=skipped.galaxy.id, image_file='masked_r_band.png') }}" 
-                                     class="img-thumbnail" alt="R-band image" style="max-width: 200px;">
+                                <img src="{{ url_for('serve_galaxy_image', galaxy_id=skipped.galaxy.id, image_file='aplpy') }}" 
+                                     class="img-thumbnail" alt="APLpy" style="max-width: 150px;">
                             </td>
                             <td>{{ skipped.comments or "No reason provided" }}</td>
                             <td>{{ skipped.date_skipped.strftime('%Y-%m-%d %H:%M') }}</td>

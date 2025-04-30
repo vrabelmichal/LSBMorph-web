@@ -42,7 +42,9 @@
 /* Responsive adjustments */
 @media (max-width: 768px) {
     .card-header {
-        font-size: 14px;
+        /* font-size: 14px; */
+        font-size: .6em;
+        padding: .1em .6em;
     }
     /* #galaxy-classification-section-header {
         font-size: 1em;

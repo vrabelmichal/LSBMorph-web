@@ -1,10 +1,15 @@
+const mobileBreakpoint = 768; // Bootstrap's breakpoint for medium screens
+// const mobileBreakpoint = 576; // Bootstrap's breakpoint for small screens
+
 document.addEventListener('DOMContentLoaded', function() {
+    
+    
     // Set focus on the quick input field when page loads
     const quickInput = document.getElementById('quick-input');
     const classificationForm = document.getElementById('classification-form');
     
     // Only focus if not on a mobile device
-    not_mobile = window.innerWidth > 576;
+    not_mobile = window.innerWidth > mobileBreakpoint;
     // not_mobile = !/Mobi|Android|iPhone|iPad|iPod/i.test(navigator.userAgent);
     if (not_mobile) {
         quickInput.focus();
@@ -287,7 +292,7 @@ document.addEventListener('DOMContentLoaded', function() {
     let prevIsMobile = null;
 
     function reorder() {
-        const isMobile = window.innerWidth < 576;
+        const isMobile = window.innerWidth < mobileBreakpoint;
         // only proceed if breakpoint really changed
         if (isMobile === prevIsMobile) return;
         prevIsMobile = isMobile;
@@ -375,5 +380,81 @@ document.addEventListener('DOMContentLoaded', function() {
     window.addEventListener('load', handleButtonLayout);
     window.addEventListener('resize', handleButtonLayout);
 
+    // Image card reordering in mobile view
+    // Store the original order of image cards for restoration when switching back to desktop
+    let originalImageCards = [];
+    let originalFirstRowCount = 0;
+    
+    function captureOriginalOrder() {
+        const imagesContainer = document.getElementById('galaxy-images-container');
+        const rows = imagesContainer.querySelectorAll('.row');
+        
+        // Store original first row count
+        if (rows[0]) {
+            originalFirstRowCount = rows[0].querySelectorAll('.col-md-4').length;
+        }
+        
+        // Capture all image cards in their original order
+        originalImageCards = Array.from(imagesContainer.querySelectorAll('.col-md-4'));
+    }
+    
+    function reorderGalaxyImages() {
+        const imagesContainer = document.getElementById('galaxy-images-container');
+        const rows = imagesContainer.querySelectorAll('.row');
+        const isMobile = window.innerWidth < mobileBreakpoint;
+        
+        // Only proceed if we have rows and images to work with
+        if (!rows || rows.length < 2) return;
+        
+        if (isMobile) {
+            // Define the desired order for base-name attributes
+            const desiredOrder = ['aplpy', 'lupton', 'masked_r_band', 'residual', 'raw_r_band', 'galfit_model'];
+            
+            // Get all image cards
+            const imageCards = Array.from(imagesContainer.querySelectorAll('.col-md-4'));
+            
+            // Sort the cards based on the desired order
+            imageCards.sort((a, b) => {
+                const aBaseName = a.querySelector('.galaxy-image').dataset.baseName;
+                const bBaseName = b.querySelector('.galaxy-image').dataset.baseName;
+                
+                return desiredOrder.indexOf(aBaseName) - desiredOrder.indexOf(bBaseName);
+            });
+            
+            // Clear the rows
+            rows.forEach(row => {
+                row.innerHTML = '';
+            });
+            
+            // Distribute the sorted cards
+            imageCards.forEach((card, index) => {
+                // First 3 cards go to first row, rest to second row
+                const targetRow = index < 3 ? rows[0] : rows[1];
+                targetRow.appendChild(card);
+            });
+        } else {
+            // Restore original order on desktop view
+            if (originalImageCards.length > 0) {
+                // Clear the rows
+                rows.forEach(row => {
+                    row.innerHTML = '';
+                });
+                
+                // Redistribute cards according to original order
+                originalImageCards.forEach((card, index) => {
+                    // Use the originally saved row distribution
+                    const targetRow = index < originalFirstRowCount ? rows[0] : rows[1];
+                    targetRow.appendChild(card.cloneNode(true));
+                });
+            }
+        }
+    }
+    
+    // Capture original order once when page loads
+    window.addEventListener('DOMContentLoaded', captureOriginalOrder);
+    
+    // Run the reordering function on page load and window resize
+    window.addEventListener('load', reorderGalaxyImages);
+    window.addEventListener('resize', reorderGalaxyImages);
 
 });
