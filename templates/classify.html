@@ -11,7 +11,13 @@
         </div>
     </div>
     
-    <form method="POST" action="{{ url_for('submit_classification') }}" id="classification-form">
+    <form method="POST" action="{{ url_for('submit_classification',
+                                            with_redshift='true' if with_redshift else 'false' if with_redshift is not none else none,
+                                            classified='true' if classified else 'false' if classified is not none else none,
+                                            skipped='true' if skipped else 'false' if skipped is not none else none,
+                                            valid_redshift='true' if valid_redshift else 'false' if valid_redshift is not none else none
+                                           ) }}" 
+          id="classification-form">
         <input type="hidden" name="galaxy_id" value="{{ galaxy.id }}">
 
         <div class="row" id="classification-form-row">
@@ -100,22 +106,39 @@
                 
                 <div class="btn-group mb-4 w-100" id="submit-buttons-container">
                     
-                    <button type="submit" class="btn btn-primary">Sumbit</button>
-
+                    <button type="submit" class="btn btn-primary">Submit</button>
                     {% if previous_galaxy %}
-                        <a href="{{ url_for('classify', id=previous_galaxy.id) }}" class="btn btn-secondary">Previous</a>
+                        <a href="{{ url_for('classify', id=previous_galaxy.id, 
+                                             with_redshift='true' if with_redshift else 'false' if with_redshift is not none else none,
+                                             classified='true' if classified else 'false' if classified is not none else none,
+                                             skipped='true' if skipped else 'false' if skipped is not none else none,
+                                             valid_redshift='true' if valid_redshift else 'false' if valid_redshift is not none else none
+                                             ) }}" 
+                           class="btn btn-secondary">Previous</a>
                     {% else %}
                         <button class="btn btn-secondary" disabled>Previous</button>
                     {% endif %}
 
                     {% if next_galaxy %}
-                        <a href="{{ url_for('classify', id=next_galaxy.id) }}" class="btn btn-secondary">Next</a>
+                        <a href="{{ url_for('classify', id=next_galaxy.id,
+                                             with_redshift='true' if with_redshift else 'false' if with_redshift is not none else none,
+                                             classified='true' if classified else 'false' if classified is not none else none,
+                                             skipped='true' if skipped else 'false' if skipped is not none else none,
+                                             valid_redshift='true' if valid_redshift else 'false' if valid_redshift is not none else none
+                                             ) }}"
+                           class="btn btn-secondary">Next</a>
                     {% else %}
                         <button class="btn btn-secondary" disabled>Next</button>
                     {% endif %}
 
                     {% if next_galaxy %}
-                        <a href="{{ url_for('skip_galaxy', id=galaxy.id) }}" class="btn btn-warning">Skip</a>
+                        <a href="{{ url_for('skip_galaxy', id=galaxy.id,
+                                             with_redshift='true' if with_redshift else 'false' if with_redshift is not none else none,
+                                             classified='true' if classified else 'false' if classified is not none else none,
+                                             skipped='true' if skipped else 'false' if skipped is not none else none,
+                                             valid_redshift='true' if valid_redshift else 'false' if valid_redshift is not none else none
+                                             ) }}"
+                           class="btn btn-warning">Skip</a>
                     {% else %}
                         <button class="btn btn-warning" disabled>Skip</button>
                     {% endif %}
@@ -123,36 +146,38 @@
             </div>
             
             <!-- Galaxy Images (order-second on mobile) -->
-            <div class="col-md-9 order-md-1 order-last" id="galaxy-images-container">
-                <div class="row">
-                    {% for image in image_paths[:3] %}
-                    <div class="col-md-4 mb-3">
-                        <div class="card">
-                            <div class="card-header">
-                                {{ image.title }}
-                                <small class="vmax-info" data-target-image="{{ image.base_name }}">
-                                    {% if image.vmax is not none %}({{ image.vmax }}){% endif %}
-                                </small>
+            <div class="col-md-9 order-md-1 order-last">
+                <div id="galaxy-images-container">
+                    <div class="row">
+                        {% for image in image_paths[:3] %}
+                        <div class="col-md-4 mb-3">
+                            <div class="card">
+                                <div class="card-header">
+                                    {{ image.title }}
+                                    <small class="vmax-info" data-target-image="{{ image.base_name }}">
+                                        {% if image.vmax is not none %}({{ image.vmax }}){% endif %}
+                                    </small>
+                                </div>
+                                <img src="{{ url_for('static', filename=image.path) }}" class="img-fluid galaxy-image" data-base-name="{{ image.base_name }}">
                             </div>
-                            <img src="{{ url_for('static', filename=image.path) }}" class="img-fluid galaxy-image" data-base-name="{{ image.base_name }}">
                         </div>
+                        {% endfor %}
                     </div>
-                    {% endfor %}
-                </div>
-                <div class="row">
-                    {% for image in image_paths[3:] %}
-                    <div class="col-md-4 mb-3">
-                        <div class="card">
-                            <div class="card-header">
-                                {{ image.title }}
-                                <small class="vmax-info" data-target-image="{{ image.base_name }}">
-                                    {% if image.vmax is not none %}({{ image.vmax }}){% endif %}
-                                </small>
+                    <div class="row">
+                        {% for image in image_paths[3:] %}
+                        <div class="col-md-4 mb-3">
+                            <div class="card">
+                                <div class="card-header">
+                                    {{ image.title }}
+                                    <small class="vmax-info" data-target-image="{{ image.base_name }}">
+                                        {% if image.vmax is not none %}({{ image.vmax }}){% endif %}
+                                    </small>
+                                </div>
+                                <img src="{{ url_for('static', filename=image.path) }}" class="img-fluid galaxy-image" data-base-name="{{ image.base_name }}">
                             </div>
-                            <img src="{{ url_for('static', filename=image.path) }}" class="img-fluid galaxy-image" data-base-name="{{ image.base_name }}">
                         </div>
+                        {% endfor %}
                     </div>
-                    {% endfor %}
                 </div>
 
                 <div class="row">
@@ -160,7 +185,6 @@
                         <a href="{{ url_for('aladin', ra=galaxy.ra, dec=galaxy.dec) }}" target="_blank" 
                         class="btn btn-info">Aladin</a>
                         <button type="button" class="btn btn-secondary" id="contrast-btn">Contrast</button>
-                        <!-- <a href="{{ url_for('help', category='examples') }}" class="btn btn-dark">Examples</a> -->
                     </div>
                 </div>
             </div>

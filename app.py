@@ -24,16 +24,48 @@ Galaxy.metadata.create_all(engine)
 Classification.metadata.create_all(engine)
 User.metadata.create_all(engine)
 
+CLASSIFY_PARAM_DEFAULTS = {
+    'with_redshift': None,
+    'classified': False,
+    'skipped': False,
+    'valid_redshift': None
+}
+
+def get_classify_mode_params_from_request():
+    params = {
+        'with_redshift': CLASSIFY_PARAM_DEFAULTS['with_redshift'],
+        'valid_redshift': CLASSIFY_PARAM_DEFAULTS['valid_redshift'],
+        'classified': CLASSIFY_PARAM_DEFAULTS['classified'],
+        'skipped': CLASSIFY_PARAM_DEFAULTS['skipped']
+    }
+    
+    # Process all boolean parameters in a consistent way
+    for param_name in params:
+        param_value = request.args.get(param_name)
+        if param_value and param_value.lower() in ('yes', 'true'):
+            params[param_name] = True
+        elif param_value and param_value.lower() in ('no', 'false'):
+            params[param_name] = False
+    return params
+
+def classify_mode_params_to_url_values(query_params):
+    redirect_args = {
+        p: ('yes' if v else 'no')
+        for p, v in query_params.items()
+        if v is not None and v != CLASSIFY_PARAM_DEFAULTS[p]
+    }
+    return redirect_args
+
 @app.teardown_appcontext
 def remove_session(exception=None):
     Session.remove()
 
-# Database setup code would go here
 
 @app.route('/')
 def index():
     """Home page with login form"""
     return render_template('index.html')
+
 
 @app.route('/favicon.ico')
 def favicon():
@@ -42,6 +74,7 @@ def favicon():
         'favicon.ico',
         mimetype='image/vnd.microsoft.icon'
 )
+
 
 @app.route('/login', methods=['POST'])
 def login():
@@ -62,6 +95,7 @@ def login():
     
     return redirect(url_for('classify'))
 
+
 @app.route('/logout')
 def logout():
     """Logout the user"""
@@ -74,26 +108,33 @@ def classify():
     """Main classification interface"""
     if 'username' not in session:
         return redirect(url_for('index'))
-    
+
+    # Process URL parameters using the defaults
+    params = get_classify_mode_params_from_request()
+        
     with Session() as db_session: 
         # Get a galaxy to classify (either next in sequence or random)
         galaxy_id = request.args.get('id')
 
         if galaxy_id:
+            # Convert 'p' to '+' in galaxy ID if needed
             pattern = r'^(KiDSDR4_J\d{6}\.\d{3})([p])(\d{6}\.\d{2})$'
             m = re.match(pattern, galaxy_id)
             if m:
-                # cerate new galaxy id with '+' instead of 'p'
                 galaxy_id = m.group(1) + '+' + m.group(3)
-            else:
-                pass
-                # presuming that the galaxy_id is already in the correct format
         
         if not galaxy_id:
-            galaxy = Galaxy.get_next_for_user(db_session, session['user_id'])
+            galaxy = Galaxy.get_next_for_user(
+                session=db_session,
+                user_id=session['user_id'],
+                current_galaxy_id=None,
+                **params
+            )
         else:
-            galaxy = Galaxy.get_by_id(db_session, galaxy_id)
-        
+            galaxy = Galaxy.get_by_id(
+                session=db_session, 
+                galaxy_id=galaxy_id
+            )
         if not galaxy:
             return render_template('galaxy_not_found.html')
 
@@ -105,15 +146,19 @@ def classify():
             session=db_session,
             user_id=session['user_id'],
             current_galaxy_id=galaxy.id,
-            ignore_skipped=True,
-            only_unclassified=False,
+            skipped=params['skipped'],
+            classified=None,  # This has to be None for performance reasons
+            with_redshift=params['with_redshift'],
+            valid_redshift=params['valid_redshift'],
         )
         previous_galaxy = Galaxy.get_previous_for_user(
             session=db_session,
             user_id=session['user_id'],
             current_galaxy_id=galaxy.id,
-            ignore_skipped=True,
-            only_unclassified=False,
+            skipped=params['skipped'],
+            classified=None,  # This has to be None for performance reasons
+            with_redshift=params['with_redshift'],
+            valid_redshift=params['valid_redshift'],
         )
         # Get image paths for this galaxy
         image_paths = get_galaxy_images(
@@ -139,6 +184,10 @@ def classify():
             image_paths=image_paths,
             progress=progress,
             current_classification=current_classification,
+            with_redshift=params['with_redshift'],
+            classified=params['classified'],
+            skipped=params['skipped'],
+            valid_redshift=params['valid_redshift'],
             )
 
 
@@ -182,7 +231,6 @@ def serve_galaxy_image(galaxy_id, image_file):
     # Serve the image file
     return send_from_directory(os.path.dirname(image_path), os.path.basename(image_path))
 
-
 @app.route('/submit_classification', methods=['POST'])
 def submit_classification():
     """Save classification data"""
@@ -193,6 +241,11 @@ def submit_classification():
     comments = request.form.get('comments', '')
     awesome_flag = 'awesome_flag' in request.form
     valid_redshift = 'valid_redshift' in request.form
+    
+    # Extract query parameters
+    params = get_classify_mode_params_from_request()
+    base_redirect_args = classify_mode_params_to_url_values(params)
+
 
     errors = []
     # Validate lsb_class
@@ -213,9 +266,9 @@ def submit_classification():
 
     # If any validation failed, redirect back with error info in query string
     if errors:
-        return redirect(
-            url_for('classify', id=galaxy_id, errors=','.join(errors))
-        )
+        redirect_args = {'id': galaxy_id, 'errors': ','.join(errors)}
+        redirect_args.update(base_redirect_args)
+        return redirect(url_for('classify', **redirect_args))
     
     with Session() as db_session:
         # Save to database
@@ -231,8 +284,23 @@ def submit_classification():
         )
         db_session.commit()
         
-    # Redirect to next galaxy
-    return redirect(url_for('classify'))
+        next_galaxy = Galaxy.get_next_for_user(
+            session=db_session,
+            user_id=session['user_id'], 
+            current_galaxy_id=galaxy_id,
+            with_redshift=params['with_redshift'],
+            classified=params['classified'],
+            skipped=params['skipped'],
+            valid_redshift=params['valid_redshift'],
+        )
+        next_galaxy_id = next_galaxy.id if next_galaxy else None
+
+    redirect_args = dict(base_redirect_args)
+    if next_galaxy_id:
+        redirect_args['id'] = next_galaxy_id
+
+    return redirect(url_for('classify', **redirect_args))
+
 
 @app.route('/skip_galaxy', methods=['GET'])
 def skip_galaxy():
@@ -244,6 +312,9 @@ def skip_galaxy():
     galaxy_id = request.args.get('id')
     comments = request.form.get('comments', '')
     
+    # Get query parameters to preserve for next redirect
+    params = get_classify_mode_params_from_request()
+    
     with Session() as db_session:
         # Save to database
         SkippedGalaxy.create_or_update(
@@ -252,14 +323,26 @@ def skip_galaxy():
             galaxy_id=galaxy_id,
             comments=comments
         )
-
-        next_galaxy = Galaxy.get_next_for_user(session=db_session, user_id=session['user_id'], current_galaxy_id=galaxy_id)
-        next_galaxy_id = next_galaxy.id if next_galaxy else None
-
         db_session.commit()
 
-    # Redirect to next galaxy
-    return redirect(url_for('classify', id=next_galaxy_id))
+        next_galaxy = Galaxy.get_next_for_user(
+            session=db_session,
+            user_id=session['user_id'], 
+            current_galaxy_id=galaxy_id,
+            with_redshift=params['with_redshift'],
+            classified=params['classified'],
+            skipped=params['skipped'],
+            valid_redshift=params['valid_redshift'],
+        )
+        next_galaxy_id = next_galaxy.id if next_galaxy else None
+
+    # Redirect to next galaxy, preserving query parameters
+    redirect_args = classify_mode_params_to_url_values(params)
+    if next_galaxy_id:
+        redirect_args['id'] = next_galaxy_id
+        
+    return redirect(url_for('classify', **redirect_args))
+
 
 @app.route('/skipped_galaxies')
 def skipped_galaxies():
@@ -272,7 +355,8 @@ def skipped_galaxies():
         skipped_galaxies = SkippedGalaxy.get_skipped(db_session, session['user_id'])
         
         return render_template('skipped_galaxies.html', skipped_galaxies=skipped_galaxies)
-    
+
+
 @app.route('/unskip_galaxy', methods=['POST'])
 def unskip_galaxy():
     """Unskip a galaxy"""
@@ -313,6 +397,7 @@ def help():
     
     return render_template('help.html', category=category, example_images=example_images, example_descriptions=dict())
 
+
 @app.route('/results')
 def results():
     """Show results/statistics for the current user"""
@@ -324,6 +409,7 @@ def results():
         user_stats = Classification.get_stats_for_user(db_session, session['user_id'])
 
         return render_template('results.html', stats=user_stats)
+
 
 @app.route('/aladin/<ra>/<dec>')
 def aladin(ra, dec):

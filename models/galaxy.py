@@ -85,10 +85,10 @@ class Galaxy(Base):
     
     classifications = relationship("Classification", back_populates="galaxy")
     skipped_galaxies = relationship("SkippedGalaxy", back_populates="galaxy")
-        
+
     @classmethod
-    def get_next_for_user(cls, session, user_id, current_galaxy_id=None, ignore_skipped=True, only_unclassified=True):
-        """Get next galaxy for user, optionally ignoring skipped galaxies and already classified galaxies"""
+    def get_next_for_user(cls, session, user_id, current_galaxy_id=None, skipped=False, classified=False, with_redshift=None, valid_redshift=None):
+        """Get next galaxy for user, filtering by skipped and classified status"""
         if current_galaxy_id:
             # Start from the galaxy specified by current_galaxy_id
             current_galaxy = session.query(cls).filter_by(id=current_galaxy_id).first()
@@ -108,22 +108,45 @@ class Galaxy(Base):
                     
                 visited_ids.add(current_galaxy.id)
                 
-                # Check if this galaxy meets our criteria
-                if ignore_skipped:
-                    # Check if user has skipped this galaxy
-                    skipped = session.query(SkippedGalaxy).filter_by(
+                if skipped is not None:
+                    # Check if this galaxy meets our skipped criteria
+                    skipped_galaxy = session.query(SkippedGalaxy).filter_by(
                         user_id=user_id, galaxy_id=current_galaxy.id
                     ).first()
-                    if skipped:
-                        continue  # Skip to the next galaxy
+                    
+                    if (skipped and not skipped_galaxy) or (not skipped and skipped_galaxy):
+                        continue  # Skip this galaxy if it doesn't match skipped criteria
                 
-                if only_unclassified:
-                    # Check if user has already classified this galaxy
-                    classified = session.query(Classification).filter_by(
+                classified_galaxy = None
+                if classified is not None:
+                    # Check if this galaxy meets our classified criteria
+                    classified_galaxy = session.query(Classification).filter_by(
                         user_id=user_id, galaxy_id=current_galaxy.id
                     ).first()
-                    if classified:
-                        continue  # Skip to the next galaxy
+                    
+                    if (classified and not classified_galaxy) or (not classified and classified_galaxy):
+                        continue  # Skip this galaxy if it doesn't match classified criteria
+                
+                if with_redshift is not None:
+                    # Check redshift criteria if specified
+                    if with_redshift is True and (current_galaxy.redshift_x is None or current_galaxy.redshift_y is None):
+                        continue  # Skip galaxies without redshift data
+                    elif with_redshift is False and (current_galaxy.redshift_x is not None or current_galaxy.redshift_y is not None):
+                        continue  # Skip galaxies with redshift data
+
+                # Always require redshift data if valid_redshift is specified
+                if valid_redshift is not None:
+                    if (current_galaxy.redshift_x is None or current_galaxy.redshift_y is None):
+                        continue  # Skip galaxies without redshift data when valid_redshift check is requested
+                
+                    # Check valid_redshift criteria if specified
+                    classified_galaxy = session.query(Classification).filter_by(
+                        user_id=user_id, galaxy_id=current_galaxy.id
+                    ).first() if classified_galaxy is None else classified_galaxy
+                    
+                    # Skip if not classified or valid_redshift doesn't match
+                    if not classified_galaxy or classified_galaxy.valid_redshift != valid_redshift:
+                        continue
                 
                 # If we get here, the galaxy meets our criteria
                 return current_galaxy
@@ -135,20 +158,38 @@ class Galaxy(Base):
             query = session.query(cls)
             
             # Apply filters based on parameters
-            if only_unclassified:
-                classified_subq = session.query(Classification.galaxy_id).filter(Classification.user_id == user_id)
+            classified_subq = session.query(Classification.galaxy_id).filter(Classification.user_id == user_id)
+            if classified:
+                query = query.filter(cls.id.in_(classified_subq))
+            else:
                 query = query.filter(~cls.id.in_(classified_subq))
             
-            if ignore_skipped:
-                skipped_subq = session.query(SkippedGalaxy.galaxy_id).filter(SkippedGalaxy.user_id == user_id)
+            skipped_subq = session.query(SkippedGalaxy.galaxy_id).filter(SkippedGalaxy.user_id == user_id)
+            if skipped:
+                query = query.filter(cls.id.in_(skipped_subq))
+            else:
                 query = query.filter(~cls.id.in_(skipped_subq))
+            
+            # Apply redshift filter if specified
+            if with_redshift is True:
+                query = query.filter(cls.redshift_x.isnot(None), cls.redshift_y.isnot(None))
+            elif with_redshift is False:
+                query = query.filter(cls.redshift_x.is_(None), cls.redshift_y.is_(None))
+            
+            # Apply valid_redshift filter if specified
+            if valid_redshift is not None:
+                valid_redshift_subq = session.query(Classification.galaxy_id).filter(
+                    Classification.user_id == user_id,
+                    Classification.valid_redshift == valid_redshift
+                )
+                query = query.filter(cls.id.in_(valid_redshift_subq))
             
             # Return the first matching galaxy
             return query.first()
     
     @classmethod
-    def get_previous_for_user(cls, session, user_id, current_galaxy_id, ignore_skipped=True, only_unclassified=False):
-        """Get previous galaxy using the previous_id field, but ignore skipped and unclassified galaxies if needed"""
+    def get_previous_for_user(cls, session, user_id, current_galaxy_id, skipped=False, classified=None, with_redshift=None, valid_redshift=None):
+        """Get previous galaxy using the previous_id field, filtering by skipped and classified status"""
         # Start from the galaxy specified by current_galaxy_id
         current_galaxy = session.query(cls).filter_by(id=current_galaxy_id).first()
         
@@ -167,29 +208,51 @@ class Galaxy(Base):
                 
             visited_ids.add(current_galaxy.id)
             
-            # Check if this galaxy meets our criteria
-            if ignore_skipped:
-                # Check if user has skipped this galaxy
-                skipped = session.query(SkippedGalaxy).filter_by(
+            if skipped is not None:
+                # Check if this galaxy meets our skipped criteria
+                skipped_galaxy = session.query(SkippedGalaxy).filter_by(
                     user_id=user_id, galaxy_id=current_galaxy.id
                 ).first()
-                if skipped:
-                    continue  # Skip to the next previous galaxy
+                
+                if (skipped and not skipped_galaxy) or (not skipped and skipped_galaxy):
+                    continue  # Skip this galaxy if it doesn't match skipped criteria
             
-            if only_unclassified:
-                # Check if user has already classified this galaxy
-                classified = session.query(Classification).filter_by(
+            classified_galaxy = None
+            if classified is not None:
+                # Check if this galaxy meets our classified criteria
+                classified_galaxy = session.query(Classification).filter_by(
                     user_id=user_id, galaxy_id=current_galaxy.id
                 ).first()
-                if classified:
-                    continue  # Skip to the next previous galaxy
+                
+                if (classified and not classified_galaxy) or (not classified and classified_galaxy):
+                    continue  # Skip this galaxy if it doesn't match classified criteria
+            
+            if with_redshift is not None:
+                # Check redshift criteria if specified
+                if with_redshift is True and (current_galaxy.redshift_x is None or current_galaxy.redshift_y is None):
+                    continue  # Skip galaxies without redshift data
+                elif with_redshift is False and (current_galaxy.redshift_x is not None or current_galaxy.redshift_y is not None):
+                    continue  # Skip galaxies with redshift data
+            
+            # Always require redshift data if valid_redshift is specified
+            if valid_redshift is not None:
+                if (current_galaxy.redshift_x is None or current_galaxy.redshift_y is None):
+                    continue  # Skip galaxies without redshift data when valid_redshift check is requested
+            
+                # Check valid_redshift criteria if specified
+                classified_galaxy = session.query(Classification).filter_by(
+                    user_id=user_id, galaxy_id=current_galaxy.id
+                ).first() if classified_galaxy is None else classified_galaxy
+                
+                # Skip if not classified or valid_redshift doesn't match
+                if not classified_galaxy or classified_galaxy.valid_redshift != valid_redshift:
+                    continue
             
             # If we get here, the galaxy meets our criteria
             return current_galaxy
         
         # If we've exhausted all options, return None
         return None
-
 
     @classmethod
     def get_by_id(cls, session, galaxy_id):

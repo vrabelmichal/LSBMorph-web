@@ -23,8 +23,22 @@
             <div class="collapse navbar-collapse" id="navbarNav">
                 <ul class="navbar-nav me-auto">
                     {% if session.username %}
-                        <li class="nav-item">
-                            <a class="nav-link" href="{{ url_for('classify') }}">Classify</a>
+                        <li class="nav-item dropdown">
+                            <a class="nav-link dropdown-toggle" href="#" id="classifyDropdown" role="button" data-bs-toggle="dropdown" aria-expanded="false">
+                                Classify
+                            </a>
+                            <ul class="dropdown-menu" aria-labelledby="classifyDropdown">
+                                <li><a class="dropdown-item" href="{{ url_for('classify') }}">All galaxies</a></li>
+                                <li><a class="dropdown-item" href="{{ url_for('classify', with_redshift='true') }}">With redshift</a></li>
+                                <li><a class="dropdown-item" href="{{ url_for('classify', valid_redshift='false') }}">Invalid redshift</a>
+                                <li><hr class="dropdown-divider"></li>
+                                <li><a class="dropdown-item" href="{{ url_for('classify', classified='true') }}">Classified only</a></li>
+                                <li><a class="dropdown-item" href="{{ url_for('classify', classified='true', with_redshift='true') }}">Classified with redshift</a></li>
+                                <li><a class="dropdown-item" href="{{ url_for('classify', classified='true', valid_redshift='false') }}">Classified with invalid redshift</a></li>
+                                <li><hr class="dropdown-divider"></li>
+                                <li><a class="dropdown-item" href="{{ url_for('classify', skipped='true') }}">Skipped only</a></li>
+                                <li><a class="dropdown-item" href="{{ url_for('classify', skipped='true', classified='true') }}">Skipped and classified</a></li>
+                            </ul>
                         </li>
                         <li class="nav-item">
                             <a class="nav-link" href="{{ url_for('results') }}">Results</a>
