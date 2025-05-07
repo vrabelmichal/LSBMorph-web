@@ -29,8 +29,8 @@
                             </a>
                             <ul class="dropdown-menu" aria-labelledby="classifyDropdown">
                                 <li><a class="dropdown-item" href="{{ url_for('classify') }}">All galaxies</a></li>
+                                <li><a class="dropdown-item" href="{{ url_for('classify', with_redshift='false') }}">Without redshift</a></li>
                                 <li><a class="dropdown-item" href="{{ url_for('classify', with_redshift='true') }}">With redshift</a></li>
-                                <li><a class="dropdown-item" href="{{ url_for('classify', valid_redshift='false') }}">Invalid redshift</a>
                                 <li><hr class="dropdown-divider"></li>
                                 <li><a class="dropdown-item" href="{{ url_for('classify', classified='true') }}">Classified only</a></li>
                                 <li><a class="dropdown-item" href="{{ url_for('classify', classified='true', with_redshift='true') }}">Classified with redshift</a></li>
