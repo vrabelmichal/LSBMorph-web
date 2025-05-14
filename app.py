@@ -28,7 +28,9 @@ CLASSIFY_PARAM_DEFAULTS = {
     'with_redshift': None,
     'classified': False,
     'skipped': False,
-    'valid_redshift': None
+    'valid_redshift': None,
+    'lsb_class': None,
+    'morphology': None
 }
 
 def get_classify_mode_params_from_request():
@@ -36,24 +38,50 @@ def get_classify_mode_params_from_request():
         'with_redshift': CLASSIFY_PARAM_DEFAULTS['with_redshift'],
         'valid_redshift': CLASSIFY_PARAM_DEFAULTS['valid_redshift'],
         'classified': CLASSIFY_PARAM_DEFAULTS['classified'],
-        'skipped': CLASSIFY_PARAM_DEFAULTS['skipped']
+        'skipped': CLASSIFY_PARAM_DEFAULTS['skipped'],
+        'lsb_class': CLASSIFY_PARAM_DEFAULTS['lsb_class'],
+        'morphology': CLASSIFY_PARAM_DEFAULTS['morphology']
     }
     
     # Process all boolean parameters in a consistent way
-    for param_name in params:
+    for param_name in ['with_redshift', 'valid_redshift', 'classified', 'skipped']:
         param_value = request.args.get(param_name)
         if param_value and param_value.lower() in ('yes', 'true'):
             params[param_name] = True
         elif param_value and param_value.lower() in ('no', 'false'):
             params[param_name] = False
+    
+    # Process integer parameters
+    for param_name in ['lsb_class', 'morphology']:
+        param_value = request.args.get(param_name)
+        if param_value:
+            try:
+                params[param_name] = int(param_value)
+            except ValueError:
+                # Ignore invalid values
+                pass
+    
     return params
 
 def classify_mode_params_to_url_values(query_params):
-    redirect_args = {
-        p: ('yes' if v else 'no')
-        for p, v in query_params.items()
-        if v is not None and v != CLASSIFY_PARAM_DEFAULTS[p]
-    }
+    redirect_args = {}
+    
+    # Handle all parameters according to their types
+    for p, v in query_params.items():
+        # Skip parameters that are None or match default values
+        if v is None or v == CLASSIFY_PARAM_DEFAULTS[p]:
+            continue
+            
+        # Handle integer parameters
+        if p in ['lsb_class', 'morphology']:
+            redirect_args[p] = str(int(v))
+        # Handle boolean parameters 
+        elif isinstance(v, bool):
+            redirect_args[p] = 'yes' if v else 'no'
+        # Handle any other types (just convert to string)
+        else:
+            redirect_args[p] = str(v)
+            
     return redirect_args
 
 @app.teardown_appcontext
@@ -124,17 +152,30 @@ def classify():
                 galaxy_id = m.group(1) + '+' + m.group(3)
         
         if not galaxy_id:
+            # Find the next suitable galaxy
             galaxy = Galaxy.get_next_for_user(
                 session=db_session,
                 user_id=session['user_id'],
                 current_galaxy_id=None,
                 **params
             )
+            
+            # If a suitable galaxy is found, redirect to it with parameters
+            if galaxy:
+                redirect_args = classify_mode_params_to_url_values(params)
+                redirect_args['id'] = galaxy.id
+                return redirect(url_for('classify', **redirect_args))
+            else:
+                # No suitable galaxy found
+                return render_template('galaxy_not_found.html')
         else:
+            # Specific galaxy requested
             galaxy = Galaxy.get_by_id(
                 session=db_session, 
                 galaxy_id=galaxy_id
             )
+        
+        # Handle case when galaxy isn't found
         if not galaxy:
             return render_template('galaxy_not_found.html')
 
@@ -150,6 +191,8 @@ def classify():
             classified=None,  # This has to be None for performance reasons
             with_redshift=params['with_redshift'],
             valid_redshift=params['valid_redshift'],
+            lsb_class=params['lsb_class'],
+            morphology=params['morphology']
         )
         previous_galaxy = Galaxy.get_previous_for_user(
             session=db_session,
@@ -159,6 +202,8 @@ def classify():
             classified=None,  # This has to be None for performance reasons
             with_redshift=params['with_redshift'],
             valid_redshift=params['valid_redshift'],
+            lsb_class=params['lsb_class'],
+            morphology=params['morphology']
         )
         # Get image paths for this galaxy
         image_paths = get_galaxy_images(
@@ -188,6 +233,8 @@ def classify():
             classified=params['classified'],
             skipped=params['skipped'],
             valid_redshift=params['valid_redshift'],
+            lsb_class=params['lsb_class'],
+            morphology=params['morphology']
             )
 
 
@@ -246,7 +293,6 @@ def submit_classification():
     params = get_classify_mode_params_from_request()
     base_redirect_args = classify_mode_params_to_url_values(params)
 
-
     errors = []
     # Validate lsb_class
     try:
@@ -292,6 +338,8 @@ def submit_classification():
             classified=params['classified'],
             skipped=params['skipped'],
             valid_redshift=params['valid_redshift'],
+            lsb_class=params['lsb_class'],
+            morphology=params['morphology']
         )
         next_galaxy_id = next_galaxy.id if next_galaxy else None
 
@@ -333,6 +381,8 @@ def skip_galaxy():
             classified=params['classified'],
             skipped=params['skipped'],
             valid_redshift=params['valid_redshift'],
+            lsb_class=params['lsb_class'],
+            morphology=params['morphology']
         )
         next_galaxy_id = next_galaxy.id if next_galaxy else None
 

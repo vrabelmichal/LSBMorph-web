@@ -15,7 +15,9 @@
                                             with_redshift='true' if with_redshift else 'false' if with_redshift is not none else none,
                                             classified='true' if classified else 'false' if classified is not none else none,
                                             skipped='true' if skipped else 'false' if skipped is not none else none,
-                                            valid_redshift='true' if valid_redshift else 'false' if valid_redshift is not none else none
+                                            valid_redshift='true' if valid_redshift else 'false' if valid_redshift is not none else none,
+                                            lsb_class=lsb_class if lsb_class is not none else none,
+                                            morphology=morphology if morphology is not none else none
                                            ) }}" 
           id="classification-form">
         <input type="hidden" name="galaxy_id" value="{{ galaxy.id }}">
@@ -112,7 +114,9 @@
                                              with_redshift='true' if with_redshift else 'false' if with_redshift is not none else none,
                                              classified='true' if classified else 'false' if classified is not none else none,
                                              skipped='true' if skipped else 'false' if skipped is not none else none,
-                                             valid_redshift='true' if valid_redshift else 'false' if valid_redshift is not none else none
+                                             valid_redshift='true' if valid_redshift else 'false' if valid_redshift is not none else none,
+                                             lsb_class=lsb_class if lsb_class is not none else none,
+                                             morphology=morphology if morphology is not none else none
                                              ) }}" 
                            class="btn btn-secondary">Previous</a>
                     {% else %}
@@ -124,7 +128,9 @@
                                              with_redshift='true' if with_redshift else 'false' if with_redshift is not none else none,
                                              classified='true' if classified else 'false' if classified is not none else none,
                                              skipped='true' if skipped else 'false' if skipped is not none else none,
-                                             valid_redshift='true' if valid_redshift else 'false' if valid_redshift is not none else none
+                                             valid_redshift='true' if valid_redshift else 'false' if valid_redshift is not none else none,
+                                             lsb_class=lsb_class if lsb_class is not none else none,
+                                             morphology=morphology if morphology is not none else none
                                              ) }}"
                            class="btn btn-secondary">Next</a>
                     {% else %}
@@ -136,7 +142,9 @@
                                              with_redshift='true' if with_redshift else 'false' if with_redshift is not none else none,
                                              classified='true' if classified else 'false' if classified is not none else none,
                                              skipped='true' if skipped else 'false' if skipped is not none else none,
-                                             valid_redshift='true' if valid_redshift else 'false' if valid_redshift is not none else none
+                                             valid_redshift='true' if valid_redshift else 'false' if valid_redshift is not none else none,
+                                             lsb_class=lsb_class if lsb_class is not none else none,
+                                             morphology=morphology if morphology is not none else none
                                              ) }}"
                            class="btn btn-warning">Skip</a>
                     {% else %}

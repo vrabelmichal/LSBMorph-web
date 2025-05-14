@@ -87,7 +87,8 @@ class Galaxy(Base):
     skipped_galaxies = relationship("SkippedGalaxy", back_populates="galaxy")
 
     @classmethod
-    def get_next_for_user(cls, session, user_id, current_galaxy_id=None, skipped=False, classified=False, with_redshift=None, valid_redshift=None):
+    def get_next_for_user(cls, session, user_id, current_galaxy_id=None, skipped=False, classified=False, 
+                          with_redshift=None, valid_redshift=None, lsb_class=None, morphology=None):
         """Get next galaxy for user, filtering by skipped and classified status"""
         if current_galaxy_id:
             # Start from the galaxy specified by current_galaxy_id
@@ -118,14 +119,25 @@ class Galaxy(Base):
                         continue  # Skip this galaxy if it doesn't match skipped criteria
                 
                 classified_galaxy = None
-                if classified is not None:
+                if classified is not None or lsb_class is not None or morphology is not None or valid_redshift is not None:
                     # Check if this galaxy meets our classified criteria
                     classified_galaxy = session.query(Classification).filter_by(
                         user_id=user_id, galaxy_id=current_galaxy.id
                     ).first()
                     
-                    if (classified and not classified_galaxy) or (not classified and classified_galaxy):
-                        continue  # Skip this galaxy if it doesn't match classified criteria
+                    if classified is not None:
+                        if (classified and not classified_galaxy) or (not classified and classified_galaxy):
+                            continue  # Skip this galaxy if it doesn't match classified criteria
+                    
+                    # Check lsb_class criteria if specified
+                    if lsb_class is not None and isinstance(lsb_class, int):
+                        if not classified_galaxy or classified_galaxy.lsb_class != lsb_class:
+                            continue  # Skip if not classified or lsb_class doesn't match
+                    
+                    # Check morphology criteria if specified
+                    if morphology is not None and isinstance(morphology, int):
+                        if not classified_galaxy or classified_galaxy.morphology != morphology:
+                            continue  # Skip if not classified or morphology doesn't match
                 
                 if with_redshift is not None:
                     # Check redshift criteria if specified
@@ -159,6 +171,27 @@ class Galaxy(Base):
             
             # Apply filters based on parameters
             classified_subq = session.query(Classification.galaxy_id).filter(Classification.user_id == user_id)
+            
+            # Filter by lsb_class if specified
+            if lsb_class is not None and isinstance(lsb_class, int):
+                lsb_subq = session.query(Classification.galaxy_id).filter(
+                    Classification.user_id == user_id,
+                    Classification.lsb_class == lsb_class
+                )
+                query = query.filter(cls.id.in_(lsb_subq))
+                # Since we're requiring a specific classification, we also require the galaxy to be classified
+                classified = True
+            
+            # Filter by morphology if specified
+            if morphology is not None and isinstance(morphology, int):
+                morph_subq = session.query(Classification.galaxy_id).filter(
+                    Classification.user_id == user_id,
+                    Classification.morphology == morphology
+                )
+                query = query.filter(cls.id.in_(morph_subq))
+                # Since we're requiring a specific classification, we also require the galaxy to be classified
+                classified = True
+            
             if classified:
                 query = query.filter(cls.id.in_(classified_subq))
             else:
@@ -184,11 +217,17 @@ class Galaxy(Base):
                 )
                 query = query.filter(cls.id.in_(valid_redshift_subq))
             
+            # Sort results for consistency:
+            # 1. Prioritize galaxies that have no previous galaxy (start of chains)
+            # 2. Then sort by galaxy ID for consistent ordering
+            query = query.order_by(cls.previous_id.is_(None).desc(), cls.id)
+            
             # Return the first matching galaxy
             return query.first()
     
     @classmethod
-    def get_previous_for_user(cls, session, user_id, current_galaxy_id, skipped=False, classified=None, with_redshift=None, valid_redshift=None):
+    def get_previous_for_user(cls, session, user_id, current_galaxy_id, skipped=False, classified=None, 
+                             with_redshift=None, valid_redshift=None, lsb_class=None, morphology=None):
         """Get previous galaxy using the previous_id field, filtering by skipped and classified status"""
         # Start from the galaxy specified by current_galaxy_id
         current_galaxy = session.query(cls).filter_by(id=current_galaxy_id).first()
@@ -218,14 +257,25 @@ class Galaxy(Base):
                     continue  # Skip this galaxy if it doesn't match skipped criteria
             
             classified_galaxy = None
-            if classified is not None:
+            if classified is not None or lsb_class is not None or morphology is not None or valid_redshift is not None:
                 # Check if this galaxy meets our classified criteria
                 classified_galaxy = session.query(Classification).filter_by(
                     user_id=user_id, galaxy_id=current_galaxy.id
                 ).first()
                 
-                if (classified and not classified_galaxy) or (not classified and classified_galaxy):
-                    continue  # Skip this galaxy if it doesn't match classified criteria
+                if classified is not None:
+                    if (classified and not classified_galaxy) or (not classified and classified_galaxy):
+                        continue  # Skip this galaxy if it doesn't match classified criteria
+                
+                # Check lsb_class criteria if specified
+                if lsb_class is not None and isinstance(lsb_class, int):
+                    if not classified_galaxy or classified_galaxy.lsb_class != lsb_class:
+                        continue  # Skip if not classified or lsb_class doesn't match
+                
+                # Check morphology criteria if specified
+                if morphology is not None and isinstance(morphology, int):
+                    if not classified_galaxy or classified_galaxy.morphology != morphology:
+                        continue  # Skip if not classified or morphology doesn't match
             
             if with_redshift is not None:
                 # Check redshift criteria if specified

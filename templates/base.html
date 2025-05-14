@@ -38,6 +38,13 @@
                                 <li><hr class="dropdown-divider"></li>
                                 <li><a class="dropdown-item" href="{{ url_for('classify', skipped='true') }}">Skipped only</a></li>
                                 <li><a class="dropdown-item" href="{{ url_for('classify', skipped='true', classified='true') }}">Skipped and classified</a></li>
+                                
+                                <!-- Add LSB class filter options -->
+                                <li><hr class="dropdown-divider"></li>
+                                <li><a class="dropdown-item" href="{{ url_for('classify', lsb_class=1) }}">LSB galaxies only</a></li>
+                                <li><a class="dropdown-item" href="{{ url_for('classify', lsb_class=0) }}">Non-LSB galaxies only</a></li>
+                                <li><a class="dropdown-item" href="{{ url_for('classify', lsb_class=-1) }}">Failed fitting galaxies only</a></li>
+                                <li><a class="dropdown-item" href="{{ url_for('classify', classified='true', lsb_class=1) }}">Classified LSB galaxies</a></li>
                             </ul>
                         </li>
                         <li class="nav-item">
